@@ -1,4 +1,4 @@
-// app.js - 花言葉抽出ツール（キーワード正規表現版）
+// app.js - 花言葉抽出ツール（整形維持・段落ベース）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -36,14 +36,33 @@ upload.addEventListener('change', async (e) => {
       }
     });
 
-    const allText = items.map(i => i.str).join('').replace(/\s+/g, '');
+    // 近い行は改行として扱い、段落として維持
+    let lines = [];
+    let currentLine = [];
+    let lastY = null;
 
-    // 正規表現で「花言葉」直後の短文を花言葉として抽出
-    const match = allText.match(/花言葉(.{3,20}?)(?:元日|\d{1,2}[A-Z]{2,}|[A-Z]{3,9})?/);
-    const flowerWord = match ? match[1].trim() : '（未抽出）';
-    const description = match ? allText.slice(0, match.index).trim() : allText;
+    for (const item of items) {
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(lastY - y) > 5) {
+        lines.push(currentLine.map(i => i.str).join(''));
+        currentLine = [];
+      }
+      currentLine.push(item);
+      lastY = y;
+    }
+    if (currentLine.length) lines.push(currentLine.map(i => i.str).join(''));
 
-    results.push(`${description}\n${flowerWord}\n`);
+    // 結合して花言葉を検出
+    const fullText = lines.join('\n').trim();
+    const keywordIndex = lines.findIndex(line => line.includes('花言葉'));
+
+    if (keywordIndex >= 0 && keywordIndex + 1 < lines.length) {
+      const description = lines.slice(0, keywordIndex).join('\n').trim();
+      const flowerWord = lines[keywordIndex + 1].trim();
+      results.push(`${description}\n${flowerWord}\n`);
+    } else {
+      results.push(`-- 抽出失敗 Page ${pageNum} --\n${fullText}\n`);
+    }
   }
 
   output.textContent = results.join('\n');
