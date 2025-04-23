@@ -1,4 +1,4 @@
-// app.js - 真・完成版（花名・日付除去＋本文＋花言葉抽出）
+// app.js - 最終クリア版（本文制限緩和・花言葉以外抽出）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -59,20 +59,17 @@ upload.addEventListener('change', async (e) => {
     let flowerWord = '';
     if (flowerIdx !== -1) {
       for (let i = flowerIdx + 1; i <= flowerIdx + 2 && i < lines.length; i++) {
-        if (lines[i].length <= 20 && !/元日|\d{1,2}[A-Z]{2,}/.test(lines[i])) {
+        if (lines[i].length <= 30) {
           flowerWord = lines[i].trim();
           break;
         }
       }
     }
 
-    // 本文抽出（花言葉前から本文らしい3行）
+    // 本文抽出（花言葉以外の末尾3行）
     const bodyLines = lines
       .slice(0, flowerIdx !== -1 ? flowerIdx : lines.length)
-      .filter(line =>
-        !/花言葉|元日|\d{4}|^\d+$|^[A-Z]{3,}|[日月火水木金土]曜日/.test(line) &&
-        line.length >= 10
-      );
+      .filter((line, i) => i !== flowerIdx && i !== flowerIdx + 1);
 
     const description = bodyLines.slice(-3).join('\n').trim();
 
