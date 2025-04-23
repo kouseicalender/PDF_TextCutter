@@ -1,0 +1,58 @@
+/* style.css - PDFテキスト分析ツール用 */
+
+body {
+  font-family: sans-serif;
+  padding: 1em;
+  background: #f0f0f0;
+  color: #333;
+}
+
+h1, h2 {
+  font-size: 1.4em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+#pdf-upload {
+  margin-bottom: 1em;
+}
+
+#viewer-container {
+  position: relative;
+  border: 1px solid #ccc;
+  display: inline-block;
+  background: #fff;
+}
+
+#pdf-canvas {
+  display: block;
+}
+
+#text-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none; /* 初期はクリック無効（後で必要なら変更） */
+}
+
+.text-box {
+  position: absolute;
+  border: 1px dashed rgba(0, 0, 255, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.text-box.selected {
+  background-color: rgba(0, 0, 255, 0.1);
+  border-color: red;
+}
+
+#selected-text {
+  margin-top: 1em;
+  background: #fff;
+  padding: 1em;
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
