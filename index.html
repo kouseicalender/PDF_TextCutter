@@ -2,25 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>PDF分析モード付きテキスト抽出ツール</title>
+  <title>PDF 花説明＋花言葉 抽出ツール</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
-  <h1>PDF分析モード付きテキスト抽出ツール</h1>
-
-  <input type="file" id="pdf-upload" accept="application/pdf" />
-
-  <!-- ✅ PDFキャンバス表示 -->
-  <div id="viewer-container">
-    <canvas id="pdf-canvas"></canvas>
-    <div id="text-layer"></div>
-  </div>
-
-  <!-- ✅ 選択結果一覧 -->
-  <h2>選択されたテキスト</h2>
-  <ul id="selected-text"></ul>
+  <h1>PDF 花説明＋花言葉 抽出ツール</h1>
+  <input type="file" id="pdf-upload" accept="application/pdf">
+  <button id="export-btn">テキストで保存</button>
+  <div id="output"></div>
 </body>
 </html>

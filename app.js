@@ -1,24 +1,26 @@
-// app.js - 全テキスト抽出ツール（抽出順序精度改善版）
+// app.js - PDF 花言葉抽出ツール（本文＋花言葉の2行セット）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
-const fileInput = document.getElementById('pdf-upload');
-const outputArea = document.getElementById('output');
+const upload = document.getElementById('pdf-upload');
+const output = document.getElementById('output');
+const exportBtn = document.getElementById('export-btn');
 
-fileInput.addEventListener('change', async (e) => {
+upload.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let allText = '';
+  let results = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
-    const textContent = await page.getTextContent();
+    const content = await page.getTextContent();
+    let items = content.items;
 
-    // 位置情報でソート（上から下、左から右）
-    textContent.items.sort((a, b) => {
+    // 位置で並び替え（上から下、左から右）
+    items.sort((a, b) => {
       const ay = a.transform[5];
       const by = b.transform[5];
       if (Math.abs(ay - by) < 5) {
@@ -28,9 +30,25 @@ fileInput.addEventListener('change', async (e) => {
       }
     });
 
-    const pageText = textContent.items.map(item => item.str).join('');
-    allText += `\n--- Page ${pageNum} ---\n` + pageText + '\n';
+    const text = items.map(i => i.str).join('');
+    const parts = text.split(/(?=花言葉)/);
+
+    if (parts.length === 2) {
+      const description = parts[0].trim().replace(/\s+/g, ' ');
+      const flowerWord = parts[1].replace('花言葉', '').trim();
+      results.push(`${description}\n${flowerWord}\n`);
+    }
   }
 
-  outputArea.textContent = allText;
+  output.textContent = results.join('\n');
+});
+
+exportBtn.addEventListener('click', () => {
+  const blob = new Blob([output.textContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '花説明と花言葉.txt';
+  a.click();
+  URL.revokeObjectURL(url);
 });
