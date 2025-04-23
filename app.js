@@ -1,4 +1,4 @@
-// app.js - フォント名で本文と花言葉を判別して抽出
+// app.js - 花言葉抽出ツール（キーワード正規表現版）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -23,21 +23,27 @@ upload.addEventListener('change', async (e) => {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
-    const styles = content.styles;
     const items = content.items;
 
-    // 分類用 fontName（調査結果に基づく）
-    const descFont = 'g_d0_f1';     // 本文
-    const flowerFont = 'g_d0_f3';   // 花言葉
+    // ソート（Y→X）
+    items.sort((a, b) => {
+      const ay = a.transform[5];
+      const by = b.transform[5];
+      if (Math.abs(ay - by) < 5) {
+        return a.transform[4] - b.transform[4];
+      } else {
+        return by - ay;
+      }
+    });
 
-    const description = items.filter(i => i.fontName === descFont).map(i => i.str).join('').trim();
-    const flowerWord = items.filter(i => i.fontName === flowerFont).map(i => i.str).join('').trim();
+    const allText = items.map(i => i.str).join('').replace(/\s+/g, '');
 
-    if (description || flowerWord) {
-      results.push(`${description}\n${flowerWord}\n`);
-    } else {
-      results.push(`-- 抽出失敗 Page ${pageNum} --`);
-    }
+    // 正規表現で「花言葉」直後の短文を花言葉として抽出
+    const match = allText.match(/花言葉(.{3,20}?)(?:元日|\d{1,2}[A-Z]{2,}|[A-Z]{3,9})?/);
+    const flowerWord = match ? match[1].trim() : '（未抽出）';
+    const description = match ? allText.slice(0, match.index).trim() : allText;
+
+    results.push(`${description}\n${flowerWord}\n`);
   }
 
   output.textContent = results.join('\n');
