@@ -1,4 +1,4 @@
-// app.js - PDF 花言葉抽出ツール（本文＋花言葉の2行セット）
+// app.js - PDF 花言葉抽出ツール（CMap対応 + 本文＋花言葉抽出）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -11,7 +11,13 @@ upload.addEventListener('change', async (e) => {
   if (!file) return;
 
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl: 'https://unpkg.com/pdfjs-dist@3.4.120/cmaps/',
+    cMapPacked: true,
+    useWorkerFetch: true
+  }).promise;
+
   let results = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -19,7 +25,7 @@ upload.addEventListener('change', async (e) => {
     const content = await page.getTextContent();
     let items = content.items;
 
-    // 位置で並び替え（上から下、左から右）
+    // ソート（Y座標優先 → X座標）
     items.sort((a, b) => {
       const ay = a.transform[5];
       const by = b.transform[5];
@@ -31,12 +37,15 @@ upload.addEventListener('change', async (e) => {
     });
 
     const text = items.map(i => i.str).join('');
-    const parts = text.split(/(?=花言葉)/);
+    console.log(`📄 Page ${pageNum} text:`, text);
 
+    const parts = text.split(/(?=花言葉)/);
     if (parts.length === 2) {
       const description = parts[0].trim().replace(/\s+/g, ' ');
       const flowerWord = parts[1].replace('花言葉', '').trim();
       results.push(`${description}\n${flowerWord}\n`);
+    } else {
+      results.push(`-- 抽出失敗 Page ${pageNum} --\n${text}\n`);
     }
   }
 
