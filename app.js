@@ -1,4 +1,4 @@
-// app.js - ラスト改良版（本文柔軟抽出＋花言葉補完）
+// app.js - 完成仕上げ版（花言葉前の末尾3行を本文とする）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -66,13 +66,11 @@ upload.addEventListener('change', async (e) => {
       }
     }
 
-    // 本文抽出（花言葉前から15文字以上の文を取得）
+    // 本文抽出：花言葉より前の末尾3行を連結
     const description = lines
-      .filter((line, i) =>
-        i < (flowerIdx !== -1 ? flowerIdx : lines.length) &&
-        line.length >= 15 &&
-        !/花言葉|元日|\d{1,2}[A-Z]{2,}|\d{4}/.test(line)
-      )
+      .slice(0, flowerIdx !== -1 ? flowerIdx : lines.length)
+      .filter(line => !/花言葉|元日|\d{4}|^\d+$/.test(line))
+      .slice(-3)
       .join('\n').trim();
 
     results.push(`${description}\n${flowerWord}\n`);
