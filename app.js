@@ -1,4 +1,4 @@
-// app.js - PDF 花言葉抽出ツール（CMap対応 + 本文＋花言葉抽出）
+// app.js - フォント名で本文と花言葉を判別して抽出
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -23,29 +23,20 @@ upload.addEventListener('change', async (e) => {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
-    let items = content.items;
+    const styles = content.styles;
+    const items = content.items;
 
-    // ソート（Y座標優先 → X座標）
-    items.sort((a, b) => {
-      const ay = a.transform[5];
-      const by = b.transform[5];
-      if (Math.abs(ay - by) < 5) {
-        return a.transform[4] - b.transform[4];
-      } else {
-        return by - ay;
-      }
-    });
+    // 分類用 fontName（調査結果に基づく）
+    const descFont = 'g_d0_f1';     // 本文
+    const flowerFont = 'g_d0_f3';   // 花言葉
 
-    const text = items.map(i => i.str).join('');
-    console.log(`📄 Page ${pageNum} text:`, text);
+    const description = items.filter(i => i.fontName === descFont).map(i => i.str).join('').trim();
+    const flowerWord = items.filter(i => i.fontName === flowerFont).map(i => i.str).join('').trim();
 
-    const parts = text.split(/(?=花言葉)/);
-    if (parts.length === 2) {
-      const description = parts[0].trim().replace(/\s+/g, ' ');
-      const flowerWord = parts[1].replace('花言葉', '').trim();
+    if (description || flowerWord) {
       results.push(`${description}\n${flowerWord}\n`);
     } else {
-      results.push(`-- 抽出失敗 Page ${pageNum} --\n${text}\n`);
+      results.push(`-- 抽出失敗 Page ${pageNum} --`);
     }
   }
 
