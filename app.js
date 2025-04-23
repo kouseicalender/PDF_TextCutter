@@ -1,4 +1,4 @@
-// app.js - 花言葉抽出ツール（仕上げ調整版：整形維持＋ノイズ除去）
+// app.js - フォント抽出改良復活版（最安定構成）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -23,9 +23,10 @@ upload.addEventListener('change', async (e) => {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
+    const styles = content.styles;
     const items = content.items;
 
-    // ソート（Y→X）
+    // ソート（上から下、左から右）
     items.sort((a, b) => {
       const ay = a.transform[5];
       const by = b.transform[5];
@@ -36,27 +37,17 @@ upload.addEventListener('change', async (e) => {
       }
     });
 
-    // 行単位でまとめる
-    let lines = [];
-    let currentLine = [];
-    let lastY = null;
+    // 調査済フォント名
+    const descFont = 'g_d0_f1';   // 本文用
+    const flowerFont = 'g_d0_f3'; // 花言葉用
 
-    for (const item of items) {
-      const y = item.transform[5];
-      if (lastY !== null && Math.abs(lastY - y) > 5) {
-        lines.push(currentLine.map(i => i.str).join('').replace(/[\s　]+/g, ''));
-        currentLine = [];
-      }
-      currentLine.push(item);
-      lastY = y;
-    }
-    if (currentLine.length) {
-      lines.push(currentLine.map(i => i.str).join('').replace(/[\s　]+/g, ''));
-    }
+    const description = items
+      .filter(i => i.fontName === descFont)
+      .map(i => i.str).join('').replace(/[\s　]+/g, '').trim();
 
-    // 下から2行だけ使う（説明＋花言葉）
-    const flowerWord = lines.at(-1) || '';
-    const description = lines.at(-2) || '';
+    const flowerWord = items
+      .filter(i => i.fontName === flowerFont)
+      .map(i => i.str).join('').replace(/[\s　]+/g, '').trim();
 
     results.push(`${description}\n${flowerWord}\n`);
   }
