@@ -1,45 +1,73 @@
-// ワーカーをCDNで設定
+// app.js - PDFテキスト分析モード付き抽出ツール v1（分析モード）
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
-console.log('✅ app.js loaded');
+const fileInput = document.getElementById('pdf-upload');
+const canvas = document.getElementById('pdf-canvas');
+const ctx = canvas.getContext('2d');
+const textLayer = document.getElementById('text-layer');
+const selectedTextList = document.getElementById('selected-text');
 
-document.getElementById('pdf-upload').addEventListener('change', async (e) => {
-  console.log('📤 PDFアップロード開始');
+let selectedTexts = [];
 
+fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
-  if (!file) {
-    console.log('⚠️ ファイルが選択されていません');
-    return;
-  }
+  if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async function () {
-    console.log('📖 PDF読み込み中…');
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
 
-    const typedArray = new Uint8Array(this.result);
-    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-    console.log(`📄 PDFページ数: ${pdf.numPages}`);
+  const viewport = page.getViewport({ scale: 1.5 });
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
 
-    const output = document.getElementById('output');
-    output.innerHTML = ''; // 初期化
+  await page.render({ canvasContext: ctx, viewport }).promise;
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const lines = content.items.map(item => item.str.trim()).filter(t => t.length > 0);
+  const textContent = await page.getTextContent();
+  textLayer.innerHTML = '';
+  textLayer.style.width = canvas.width + 'px';
+  textLayer.style.height = canvas.height + 'px';
+  textLayer.style.position = 'absolute';
+  textLayer.style.top = '0';
+  textLayer.style.left = '0';
+  textLayer.style.pointerEvents = 'none';
 
-      const pageBlock = document.createElement('div');
-      const header = document.createElement('h3');
-      header.textContent = `📄 Page ${i}`;
-      const pre = document.createElement('pre');
-      pre.textContent = lines.join('\n');
+  textContent.items.forEach(item => {
+    const tx = pdfjsLib.Util.transform(
+      pdfjsLib.Util.transform(viewport.transform, item.transform),
+      [1, 0, 0, -1, 0, 0]
+    );
 
-      pageBlock.appendChild(header);
-      pageBlock.appendChild(pre);
-      output.appendChild(pageBlock);
+    const div = document.createElement('div');
+    div.className = 'text-box';
+    div.style.left = tx[4] + 'px';
+    div.style.top = tx[5] + 'px';
+    div.style.width = item.width * viewport.scale + 'px';
+    div.style.height = item.height * viewport.scale + 'px';
+    div.title = item.str;
+    div.textContent = item.str;
+    div.style.pointerEvents = 'auto';
 
-      console.log(`✅ Page ${i} 行数: ${lines.length}`);
-    }
-  };
-  reader.readAsArrayBuffer(file);
+    div.addEventListener('click', () => {
+      div.classList.toggle('selected');
+      if (div.classList.contains('selected')) {
+        selectedTexts.push(item.str);
+      } else {
+        selectedTexts = selectedTexts.filter(t => t !== item.str);
+      }
+      renderSelectedTexts();
+    });
+
+    textLayer.appendChild(div);
+  });
 });
+
+function renderSelectedTexts() {
+  selectedTextList.innerHTML = '';
+  selectedTexts.forEach(txt => {
+    const li = document.createElement('li');
+    li.textContent = txt;
+    selectedTextList.appendChild(li);
+  });
+}
