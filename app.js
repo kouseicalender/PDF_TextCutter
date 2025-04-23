@@ -1,4 +1,4 @@
-// app.js - 完成仕上げ版（花言葉前の末尾3行を本文とする）
+// app.js - 真・完成版（花名・日付除去＋本文＋花言葉抽出）
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -66,12 +66,15 @@ upload.addEventListener('change', async (e) => {
       }
     }
 
-    // 本文抽出：花言葉より前の末尾3行を連結
-    const description = lines
+    // 本文抽出（花言葉前から本文らしい3行）
+    const bodyLines = lines
       .slice(0, flowerIdx !== -1 ? flowerIdx : lines.length)
-      .filter(line => !/花言葉|元日|\d{4}|^\d+$/.test(line))
-      .slice(-3)
-      .join('\n').trim();
+      .filter(line =>
+        !/花言葉|元日|\d{4}|^\d+$|^[A-Z]{3,}|[日月火水木金土]曜日/.test(line) &&
+        line.length >= 10
+      );
+
+    const description = bodyLines.slice(-3).join('\n').trim();
 
     results.push(`${description}\n${flowerWord}\n`);
   }
